@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checkout:
+    name: Checkout
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+  build:
+    name: Build
+    needs: checkout
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  notify-discord:
+    name: Notify Discord
+    needs: [checkout, build]
+    if: ${{ !cancelled() && (needs.checkout.result == 'failure' || needs.build.result == 'success' || needs.build.result == 'failure') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Send CI result
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          CHECKOUT_RESULT: ${{ needs.checkout.result }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message || github.event.pull_request.title }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+          ACTOR: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node <<'NODE'
+          const webhook = process.env.DISCORD_WEBHOOK_URL;
+          if (!webhook) {
+            console.log('Discord notification skipped: DISCORD_WEBHOOK_URL is unavailable.');
+            process.exit(0);
+          }
+          const success = [process.env.CHECKOUT_RESULT, process.env.BUILD_RESULT].every((value) => value === 'success');
+          const field = (name, value, inline = false) => ({
+            name, value: (value || 'Unknown').slice(0, 1024), inline,
+          });
+          const payload = {
+            allowed_mentions: { parse: [] },
+            embeds: [{
+              title: '🚀 Build event',
+              color: success ? 0x2ecc71 : 0xe74c3c,
+              fields: [
+                field('Repository', process.env.REPOSITORY, true),
+                field('Branch', process.env.BRANCH_NAME, true),
+                field('Commit', process.env.COMMIT_SHA.slice(0, 7), true),
+                field('By', process.env.ACTOR, true),
+                field('Message', process.env.COMMIT_MESSAGE),
+                field('Status', success ? '✅ SUCCESS' : '❌ FAIL'),
+                field('Log', process.env.RUN_URL),
+              ],
+            }],
+          };
+          fetch(webhook, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }).then((response) => {
+            if (!response.ok) throw new Error(`Discord returned HTTP ${response.status}`);
+            console.log('Discord notification sent.');
+          }).catch((error) => {
+            console.error(error.message);
+            process.exitCode = 1;
+          });
+          NODE

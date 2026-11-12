@@ -53,3 +53,9 @@ const user = await request(servicePaths.BackofficeUserController_get({ id: "user
 ## สถานะการเชื่อมต่อ API
 
 การสร้างกลุ่มและการค้นหา/แบ่งหน้ารายการกลุ่มยังต้องปรับให้ตรงกับ contract ของ user-service ก่อนใช้งานจริง และยังไม่มีการ generate TypeScript models จาก OpenAPI ให้ตรวจ contract ของ service และทดสอบการทำงานร่วมกันก่อน deploy
+
+## GitHub Actions และ Discord
+
+เมื่อ push หรือเปิด pull request GitHub Actions จะทำ Checkout และ Build (`npm ci` และ `npm run build`) แล้วแสดงผลในแท็บ Actions ของ repository โปรเจกต์นี้ยังไม่มีคำสั่ง Linter หรือชุด Unit test จึงยังไม่ได้ตรวจสองขั้นตอนนี้ใน CI
+
+หากต้องการแจ้งผลใน Discord ให้สร้าง webhook ของ channel แล้วเพิ่ม URL เป็น repository secret ชื่อ `DISCORD_WEBHOOK_URL` ที่ GitHub **Settings → Secrets and variables → Actions** ข้อความจะแสดง repository, branch, commit, ผู้ดำเนินการ, ข้อความ, สถานะ และลิงก์ log สำหรับ pull request ข้อความจะแสดงชื่อ PR ระบบจะข้ามการแจ้งเตือนเมื่อไม่มี secret (รวมถึง PR จาก fork) และเมื่อ workflow ถูกยกเลิก ห้ามเปิดเผย webhook URL
