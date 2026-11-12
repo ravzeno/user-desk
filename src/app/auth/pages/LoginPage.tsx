@@ -44,7 +44,7 @@ export function LoginPage() {
     signIn.mutate(values, {
       onSuccess: async () => {
         await queryClient.invalidateQueries({ queryKey: ["session"] });
-        navigate("/users", { replace: true });
+        navigate("/", { replace: true });
       },
       onError: (error) => {
         const text =

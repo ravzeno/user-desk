@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/api/access";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronRight, Plus } from "lucide-react";
@@ -16,6 +17,7 @@ import {
 } from "@/components/ui";
 
 export function GroupsPage() {
+  const can = usePermission();
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -27,9 +29,9 @@ export function GroupsPage() {
         title="กลุ่ม"
         description="กลุ่มจะรวมสิทธิ์และสมาชิกที่ใช้งานร่วมกัน"
         actions={
-          <Link className="button button-primary" to="/groups/new">
+          can("core_group:create") ? <Link className="button button-primary" to="/groups/new">
             <Plus size={17} /> สร้างกลุ่ม
-          </Link>
+          </Link> : undefined
         }
       />
       <section className="panel filter-panel">
@@ -62,7 +64,7 @@ export function GroupsPage() {
               : "สร้างกลุ่มเพื่อเริ่มกำหนดสิทธิ์และสมาชิก"
           }
           action={
-            !q && (
+            !q && can("core_group:create") && (
               <Link
                 className="button button-primary button-small"
                 to="/groups/new"

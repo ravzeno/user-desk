@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/api/access";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,11 +46,12 @@ import {
 } from "@/components/ui";
 
 const groupSchema = z.object({
+  slug: z.string().trim().max(100, "รหัสกลุ่มต้องไม่เกิน 100 ตัวอักษร"),
   name: z
     .string()
     .trim()
     .min(1, "กรุณากรอกชื่อกลุ่ม")
-    .max(160, "ชื่อกลุ่มยาวเกินไป"),
+    .max(100, "ชื่อกลุ่มต้องไม่เกิน 100 ตัวอักษร"),
   description: z.string().max(500, "คำอธิบายต้องไม่เกิน 500 ตัวอักษร"),
   active: z.boolean(),
 });
@@ -57,6 +59,7 @@ type GroupValues = z.infer<typeof groupSchema>;
 
 export function GroupDetailPage({ create = false }: { create?: boolean }) {
   const { id = "" } = useParams();
+  const can = usePermission();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [tab, setTab] = useState<"overview" | "members" | "permissions">(
@@ -74,7 +77,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
   const form = useForm<GroupValues>({
     resolver: zodResolver(groupSchema),
     mode: "onChange",
-    defaultValues: { name: "", description: "", active: true },
+    defaultValues: { slug: "", name: "", description: "", active: true },
   });
   useEffect(() => {
     if (
@@ -82,6 +85,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
       (loadedGroupId.current !== String(group.id) || !form.formState.isDirty)
     ) {
       form.reset({
+        slug: group.slug || "",
         name: group.name,
         description: group.description || "",
         active: group.active,
@@ -118,10 +122,10 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
     }
   }, [group, permissionsDirty]);
   const catalogQuery = useGetPermissions({
-    enabled: tab === "permissions" || create,
+    enabled: tab === "permissions" && can("core_permission:list"),
   });
   const usersQuery = useGetUsers(memberSearch, 1, 100, {
-    enabled: !create && tab === "members",
+    enabled: !create && tab === "members" && can("core_user:list"),
   });
 
   const createGroup = useCreateGroup();
@@ -131,7 +135,11 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
     const onError = (error: Error) =>
       showToast(getErrorMessage(error), "error");
     if (create) {
-      createGroup.mutate(values, {
+      if (!values.slug.trim()) {
+        form.setError("slug", { message: "กรุณากรอกรหัสกลุ่ม" });
+        return;
+      }
+      createGroup.mutate({ slug: values.slug.trim(), name: values.name, description: values.description }, {
         onSuccess: (result) => {
           showToast("สร้างกลุ่มแล้ว", "success");
           const resultId =
@@ -146,7 +154,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
       });
     } else {
       updateGroup.mutate(
-        { groupId: id, body: values },
+        { groupId: id, body: { name: values.name, description: values.description, active: values.active } },
         {
           onSuccess: () => {
             form.reset(values);
@@ -221,9 +229,9 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
   const rootAdminGroup = isRootAdminGroup(group);
   const activeFormValue = form.watch("active");
   const canEditDetails =
-    !systemGroup || group?.active === true || activeFormValue;
-  const canManageMembers = !rootAdminGroup;
-  const canManagePermissions = !rootAdminGroup;
+    (create || can("core_group:edit")) && (!systemGroup || group?.active === true || activeFormValue);
+  const canManageMembers = !rootAdminGroup && can("core_group:assign_users") && can("core_user:list");
+  const canManagePermissions = !rootAdminGroup && can("core_group:assign_permissions") && can("core_permission:list");
   const candidates = (usersQuery.data?.items || []).filter(
     (user) =>
       user.role !== "root-admin" &&
@@ -240,7 +248,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
         title={create ? "สร้างกลุ่ม" : group?.name || "รายละเอียดกลุ่ม"}
         description={
           create
-            ? "กำหนดชื่อกลุ่ม คำอธิบาย และสถานะเริ่มต้น"
+            ? "กำหนดชื่อ รหัส และคำอธิบายของกลุ่ม"
             : group?.description || "จัดการสมาชิกและสิทธิ์ของกลุ่ม"
         }
         actions={
@@ -251,7 +259,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                   <LockKeyhole size={13} /> กลุ่มระบบ
                 </StatusBadge>
               )}
-              {!systemGroup && (
+              {!systemGroup && can("core_group:delete") && (
                 <button
                   className="button button-danger-outline"
                   onClick={() => setConfirmDelete(true)}
@@ -270,7 +278,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
             { id: "overview", label: "ข้อมูลกลุ่ม", icon: Shield },
             { id: "members", label: "สมาชิก", icon: Users },
             { id: "permissions", label: "สิทธิ์", icon: Check },
-          ].map(({ id: tabId, label, icon: Icon }) => (
+          ].filter(({ id }) => id !== "permissions" || can("core_permission:list")).map(({ id: tabId, label, icon: Icon }) => (
             <button
               className={`detail-tab ${tab === tabId ? "detail-tab-active" : ""}`}
               role="tab"
@@ -318,6 +326,15 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                 </Field>
               )}
             />
+            {create && <Controller
+              name="slug"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field label="รหัสกลุ่ม" htmlFor="group-slug" hint="รหัสเฉพาะของกลุ่ม ไม่เกิน 100 ตัวอักษร" error={fieldState.error?.message}>
+                  <input {...field} id="group-slug" maxLength={100} placeholder="เช่น customer-support" />
+                </Field>
+              )}
+            />}
             <Controller
               name="description"
               control={form.control}
@@ -339,7 +356,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                 </Field>
               )}
             />
-            <Controller
+            {!create && <Controller
               name="active"
               control={form.control}
               render={({ field }) => {
@@ -358,13 +375,13 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                     type="checkbox"
                     checked={field.value}
                     onChange={field.onChange}
-                    disabled={activeSwitchLocked}
+                    disabled={activeSwitchLocked || !canEditDetails}
                   />
                   <span className="switch-ui" />
                 </label>
                 );
               }}
-            />
+            />}
             {systemGroup && (
               <div className="notice notice-info">
                 <LockKeyhole size={16} />
@@ -379,7 +396,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                 className="button button-primary"
                 type="submit"
                 disabled={
-                  !form.formState.isValid ||
+                  !canEditDetails || !form.formState.isValid ||
                   savePending ||
                   (!create && !form.formState.isDirty)
                 }
@@ -521,7 +538,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
                         )}
                       </td>
                       <td>
-                        {canManageMembers && (
+                        {!rootAdminGroup && can("core_group:remove_user") && (
                           <button
                             className="button button-danger-outline button-small"
                             onClick={() => setRemoveUser(user)}
@@ -551,7 +568,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
         </section>
       )}
 
-      {!create && tab === "permissions" && (
+      {!create && tab === "permissions" && can("core_permission:list") && (
         <section className="panel table-panel">
           <div className="table-heading">
             <div>

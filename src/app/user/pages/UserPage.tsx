@@ -1,3 +1,4 @@
+import { usePermission } from "@/hooks/api/access";
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -37,7 +38,7 @@ import {
 import { useSendVerificationEmail } from "@/hooks/api/auth";
 import {
   UserStatusBadge,
-  userInitials,
+  UserAvatar,
 } from "@/app/user/components/UserIdentity";
 import {
   ConfirmDialog,
@@ -55,6 +56,7 @@ import {
 } from "@/components/ui";
 
 const createUserSchema = z.object({
+  role: z.enum(["customer", "staff"]),
   name: z
     .string()
     .trim()
@@ -80,6 +82,8 @@ const profileSchema = z.object({
 type ProfileValues = z.infer<typeof profileSchema>;
 
 export function UsersPage() {
+  const can = usePermission();
+  const [createOpen, setCreateOpen] = useState(false);
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
@@ -87,9 +91,9 @@ export function UsersPage() {
   const scope: UserListScope =
     searchParams.get("scope") === "backoffice" ? "backoffice" : "customer";
   const users = useGetUsers(q, page, limit, { scope });
-  const accountTitle = scope === "customer" ? "บัญชีลูกค้า" : "บัญชี Backoffice";
+  const accountTitle = scope === "customer" ? "บัญชีลูกค้า" : "บัญชีพนักงาน";
   const accountCategory =
-    scope === "customer" ? "ลูกค้า" : "บัญชี Backoffice";
+    scope === "customer" ? "ลูกค้า" : "บัญชีพนักงาน";
   useEffect(() => setPage(1), [scope]);
 
   return (
@@ -97,13 +101,11 @@ export function UsersPage() {
       <PageHeading
         eyebrow="บัญชีและการเข้าถึง"
         title="ผู้ใช้"
-        description="แยกรายชื่อลูกค้าและบัญชี Backoffice เพื่อค้นหาและจัดการได้ง่ายขึ้น"
+        description="แยกรายชื่อลูกค้าและพนักงาน เพื่อค้นหาและจัดการได้ง่ายขึ้น"
         actions={
-          scope === "customer" ? (
-            <Link className="button button-primary" to="/users/new">
-              <Plus size={17} /> เพิ่มลูกค้า
-            </Link>
-          ) : undefined
+          can("core_user:create") && (scope !== "backoffice" || can("core_user:set-role")) ? <button type="button" className="button button-primary" onClick={() => setCreateOpen(true)}>
+            <Plus size={17} /> {scope === "backoffice" ? "เพิ่มพนักงาน" : "เพิ่มลูกค้า"}
+          </button> : undefined
         }
       />
       <section className="panel filter-panel">
@@ -142,13 +144,10 @@ export function UsersPage() {
                 : "บัญชีที่มีบทบาทเจ้าหน้าที่จะแสดงในส่วนนี้"
           }
           action={
-            !q && scope === "customer" && (
-              <Link
-                className="button button-primary button-small"
-                to="/users/new"
-              >
-                <Plus size={16} /> เพิ่มลูกค้า
-              </Link>
+            !q && can("core_user:create") && (scope !== "backoffice" || can("core_user:set-role")) && (
+              <button type="button" className="button button-primary button-small" onClick={() => setCreateOpen(true)}>
+                <Plus size={16} /> {scope === "customer" ? "เพิ่มลูกค้า" : "เพิ่มพนักงาน"}
+              </button>
             )
           }
         />
@@ -167,7 +166,7 @@ export function UsersPage() {
                 <tr>
                   <th>ผู้ใช้</th>
                   <th>อีเมล</th>
-                  <th>บทบาท</th>
+                  {scope === "backoffice" && <th>บทบาท</th>}
                   <th>สถานะ</th>
                   <th>ยืนยันอีเมล</th>
                   <th>สร้างเมื่อ</th>
@@ -179,9 +178,7 @@ export function UsersPage() {
                   <tr key={user.id}>
                     <td>
                       <div className="person-cell">
-                        <div className="person-avatar">
-                          {userInitials(user.name)}
-                        </div>
+                        <UserAvatar name={user.name} image={user.image} />
                         <div>
                           <strong>{user.name || "ไม่ระบุชื่อ"}</strong>
                           <small>ID: {user.id}</small>
@@ -189,13 +186,13 @@ export function UsersPage() {
                       </div>
                     </td>
                     <td className="text-muted">{user.email}</td>
-                    <td>
+                    {scope === "backoffice" && <td>
                       <StatusBadge
                         tone={user.role === "staff" ? "accent" : "neutral"}
                       >
                         {user.role || "ไม่ระบุ"}
                       </StatusBadge>
-                    </td>
+                    </td>}
                     <td>
                       <UserStatusBadge user={user} />
                     </td>
@@ -231,7 +228,7 @@ export function UsersPage() {
                 key={user.id}
               >
                 <div className="mobile-record-main">
-                  <div className="person-avatar">{userInitials(user.name)}</div>
+                  <UserAvatar name={user.name} image={user.image} />
                   <div>
                     <strong>{user.name || "ไม่ระบุชื่อ"}</strong>
                     <span>{user.email}</span>
@@ -240,11 +237,11 @@ export function UsersPage() {
                 </div>
                 <div className="mobile-record-meta">
                   <UserStatusBadge user={user} />
-                  <StatusBadge
+                  {scope === "backoffice" && <StatusBadge
                     tone={user.role === "staff" ? "accent" : "neutral"}
                   >
                     {user.role || "ไม่ระบุ"}
-                  </StatusBadge>
+                  </StatusBadge>}
                   <span>{formatDate(user.createdAt)}</span>
                 </div>
               </Link>
@@ -262,47 +259,97 @@ export function UsersPage() {
           />
         </section>
       )}
+      {createOpen && (
+        <UserCreateDrawer role={scope === "backoffice" ? "staff" : "customer"} onClose={() => setCreateOpen(false)} />
+      )}
     </>
   );
 }
 
+function UserCreateDrawer({ role, onClose }: { role: Role; onClose: () => void }) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const requestClose = () => { if (!busy) setClosing(true); };
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
+    return () => dialog?.close();
+  }, []);
+
+  return (
+    <dialog ref={dialogRef} className={`user-drawer${closing ? " user-drawer-closing" : ""}`} aria-labelledby="user-drawer-title"
+      onAnimationEnd={(event) => { if (closing && event.target === event.currentTarget) onClose(); }}
+      onCancel={(event) => { event.preventDefault(); requestClose(); }}
+      onClick={(event) => { if (event.target === event.currentTarget) requestClose(); }}>
+      <div className="user-drawer-content">
+        <div className="user-drawer-header">
+          <div><h2 id="user-drawer-title">{role === "staff" ? "เพิ่มพนักงาน" : "เพิ่มลูกค้า"}</h2><p>กรอกข้อมูลเพื่อสร้างบัญชีใหม่</p></div>
+          <button type="button" className="icon-button" aria-label="ปิด" onClick={requestClose} disabled={busy || closing}><X size={20} /></button>
+        </div>
+        <UserCreateForm initialRole={role} onClose={onClose} onDismiss={requestClose} onBusyChange={setBusy} />
+      </div>
+    </dialog>
+  );
+}
+
 export function UserFormPage() {
+  const [searchParams] = useSearchParams();
+  return <UserCreateForm initialRole={searchParams.get("role") === "staff" ? "staff" : "customer"} />;
+}
+
+function UserCreateForm({ initialRole, onClose, onDismiss, onBusyChange }: { initialRole: Role; onClose?: () => void; onDismiss?: () => void; onBusyChange?: (busy: boolean) => void }) {
   const navigate = useNavigate();
+  const can = usePermission();
   const { showToast } = useToast();
   const form = useForm<CreateUserValues>({
     resolver: zodResolver(createUserSchema),
     mode: "onChange",
-    defaultValues: { name: "", email: "", password: "" },
+    defaultValues: { name: "", email: "", password: "", role: initialRole },
   });
   const create = useCreateUser();
 
-  const handleCreate = (values: CreateUserValues) =>
-    create.mutate(values, {
-      onSuccess: (result) => {
-        showToast("สร้างบัญชีแล้ว ระบบส่งอีเมลยืนยันให้ผู้ใช้แล้ว", "success");
-        const id =
-          typeof result === "string"
-            ? result
-            : typeof result === "object" && result !== null
-              ? result.id
-              : undefined;
-        navigate(id ? `/users/${encodeURIComponent(String(id))}` : "/users", {
-          replace: true,
-        });
-      },
-      onError: (error) => showToast(getErrorMessage(error), "error"),
-    });
+  const setRole = useSetUserRole();
+
+  const handleCreate = async ({ role, ...values }: CreateUserValues) => {
+    onBusyChange?.(true);
+    let result: Awaited<ReturnType<typeof create.mutateAsync>>;
+    try {
+      result = await create.mutateAsync(values);
+    } catch (error) {
+      showToast(getErrorMessage(error), "error");
+      onBusyChange?.(false);
+      return;
+    }
+    const id = typeof result === "string" ? result : result?.id;
+    if (role === "staff") {
+      if (!id) {
+        showToast("สร้างบัญชีแล้ว แต่ไม่พบรหัสผู้ใช้สำหรับตั้งบทบาท กรุณาค้นหาบัญชีและเปลี่ยนบทบาทเป็น staff", "error");
+        onClose?.();
+        navigate("/users", { replace: true });
+        return;
+      }
+      try {
+        await setRole.mutateAsync({ userId: id, role });
+      } catch (error) {
+        showToast(`สร้างบัญชีแล้ว แต่ตั้งบทบาทพนักงานไม่สำเร็จ: ${getErrorMessage(error)} กรุณาเปลี่ยนบทบาทในหน้ารายละเอียด`, "error");
+        onClose?.();
+        navigate(`/users/${encodeURIComponent(String(id))}`, { replace: true });
+        return;
+      }
+    }
+    showToast("สร้างบัญชีแล้ว ระบบส่งอีเมลยืนยันให้ผู้ใช้แล้ว", "success");
+    onClose?.();
+    navigate(id ? `/users/${encodeURIComponent(String(id))}` : "/users", { replace: true });
+  };
 
   return (
     <>
-      <Link className="back-link" to="/users">
-        <ArrowLeft size={16} /> กลับรายชื่อผู้ใช้
-      </Link>
-      <PageHeading
-        eyebrow="บัญชีและการเข้าถึง"
-        title="สร้างผู้ใช้"
-        description="สร้างบัญชีใหม่ ระบบจะส่งอีเมลสำหรับยืนยันที่อยู่ให้ผู้ใช้"
-      />
+      {!onClose && <>
+        <Link className="back-link" to="/users"><ArrowLeft size={16} /> กลับรายชื่อผู้ใช้</Link>
+        <PageHeading eyebrow="บัญชีและการเข้าถึง" title="สร้างผู้ใช้" description="สร้างบัญชีใหม่ ระบบจะส่งอีเมลสำหรับยืนยันที่อยู่ให้ผู้ใช้" />
+      </>}
       <section className="panel form-panel">
         <div className="section-heading">
           <div className="section-icon">
@@ -383,15 +430,15 @@ export function UserFormPage() {
             </span>
           </div>
           <div className="form-actions">
-            <Link className="button button-secondary" to="/users">
-              ยกเลิก
-            </Link>
+            {onClose ? (
+              <button type="button" className="button button-secondary" onClick={onDismiss ?? onClose} disabled={create.isPending || setRole.isPending}>ยกเลิก</button>
+            ) : <Link className="button button-secondary" to="/users">ยกเลิก</Link>}
             <button
               className="button button-primary"
               type="submit"
-              disabled={!form.formState.isValid || create.isPending}
+              disabled={!form.formState.isValid || create.isPending || setRole.isPending || !can("core_user:create") || (initialRole === "staff" && !can("core_user:set-role"))}
             >
-              {create.isPending ? "กำลังสร้าง…" : "สร้างบัญชี"}
+              {create.isPending || setRole.isPending ? "กำลังสร้าง…" : "สร้างบัญชี"}
             </button>
           </div>
         </form>
@@ -404,6 +451,7 @@ type UserTab = "profile" | "groups" | "sessions";
 
 export function UserDetailPage() {
   const { id = "" } = useParams();
+  const can = usePermission();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const returnToUsers = `/users?scope=${searchParams.get("scope") === "backoffice" ? "backoffice" : "customer"}`;
@@ -416,7 +464,7 @@ export function UserDetailPage() {
   const [sessionToRevoke, setSessionToRevoke] = useState<string | null>(null);
   const userQuery = useGetUser(id);
   const groupsQuery = useGetUserGroups(id, { enabled: tab === "groups" });
-  const sessionsQuery = useGetUserSessions(id, { enabled: tab === "sessions" });
+  const sessionsQuery = useGetUserSessions(id, { enabled: tab === "sessions" && can("core_session:list") });
   const user = userQuery.data;
 
   const profileForm = useForm<ProfileValues>({
@@ -480,7 +528,8 @@ export function UserDetailPage() {
     setEditingRole(false);
   };
   const setRole = useSetUserRole();
-  const handleSetRole = (role: Role) =>
+  const handleSetRole = (role: Role) => {
+    if (user?.role !== "staff" || !can("core_user:set-role")) return;
     setRole.mutate(
       { userId: id, role },
       {
@@ -491,6 +540,7 @@ export function UserDetailPage() {
         onError: (error) => showToast(getErrorMessage(error), "error"),
       },
     );
+  };
   const ban = useBanUser();
   const unban = useUnbanUser();
   const handleBan = () =>
@@ -592,9 +642,7 @@ export function UserDetailPage() {
       </Link>
       <div className="user-detail-header">
         <div className="detail-person">
-          <div className="person-avatar person-avatar-large">
-            {userInitials(user.name)}
-          </div>
+          <UserAvatar name={user.name} image={user.image} large />
           <div>
             <div className="detail-name-line">
               <h1>{user.name || "ไม่ระบุชื่อ"}</h1>
@@ -606,7 +654,7 @@ export function UserDetailPage() {
           </div>
         </div>
         <div className="detail-actions">
-          {!user.banned ? (
+          {can("core_user:ban") && (!user.banned ? (
             <button
               className="button button-secondary"
               onClick={() => setConfirm("ban")}
@@ -621,13 +669,13 @@ export function UserDetailPage() {
             >
               <RotateCcw size={16} /> ยกเลิกระงับ
             </button>
-          )}
-          <button
+          ))}
+          {can("core_user:delete") && <button
             className="button button-danger-outline"
             onClick={() => setConfirm("delete")}
           >
             <Trash2 size={16} /> ลบบัญชี
-          </button>
+          </button>}
         </div>
       </div>
 
@@ -636,7 +684,7 @@ export function UserDetailPage() {
           { id: "profile", label: "ข้อมูลบัญชี", icon: UserRound },
           { id: "groups", label: "กลุ่ม", icon: Users },
           { id: "sessions", label: "เซสชัน", icon: Clock3 },
-        ].map(({ id: tabId, label, icon: Icon }) => (
+        ].filter(({ id }) => id !== "sessions" || can("core_session:list")).map(({ id: tabId, label, icon: Icon }) => (
           <button
             className={`detail-tab ${tab === tabId ? "detail-tab-active" : ""}`}
             role="tab"
@@ -663,7 +711,7 @@ export function UserDetailPage() {
                   <p>{editingProfile ? "แก้ไขข้อมูลบัญชีผู้ใช้" : "ข้อมูลบัญชีผู้ใช้"}</p>
                 </div>
               </div>
-              {!editingProfile && (
+              {can("core_user:update") && !editingProfile && (
                 <button
                   className="button button-secondary button-small"
                   type="button"
@@ -742,7 +790,7 @@ export function UserDetailPage() {
                     className="button button-primary"
                     type="submit"
                     disabled={
-                      !profileForm.formState.isValid ||
+                      !can("core_user:update") || !profileForm.formState.isValid ||
                       update.isPending ||
                       !profileForm.formState.isDirty
                     }
@@ -785,7 +833,7 @@ export function UserDetailPage() {
                     <p>บทบาทไม่ใช่ permissions จากกลุ่ม</p>
                   </div>
                 </div>
-                {isStandardRole && !editingRole && (
+                {can("core_user:set-role") && user.role === "staff" && !editingRole && (
                   <button
                     className="button button-secondary button-small"
                     type="button"
@@ -796,7 +844,7 @@ export function UserDetailPage() {
                 )}
               </div>
               {isStandardRole ? (
-                editingRole ? (
+                editingRole && user.role === "staff" ? (
                   <div className="role-edit-stack">
                     <select
                       value={nextRole}
@@ -821,7 +869,7 @@ export function UserDetailPage() {
                         className="button button-primary button-small"
                         type="button"
                         onClick={() => handleSetRole(nextRole)}
-                        disabled={setRole.isPending || nextRole === roleValue}
+                        disabled={!can("core_user:set-role") || setRole.isPending || nextRole === roleValue}
                       >
                         {setRole.isPending ? "กำลังบันทึก…" : "บันทึก"}
                       </button>
@@ -905,7 +953,7 @@ export function UserDetailPage() {
         </section>
       )}
 
-      {tab === "sessions" && (
+      {tab === "sessions" && can("core_session:list") && (
         <section className="panel table-panel">
           <div className="table-heading">
             <div>
@@ -953,6 +1001,7 @@ export function UserDetailPage() {
                       <td>
                         <button
                           className="button button-danger-outline button-small"
+                          disabled={!can("core_session:revoke")}
                           onClick={() => {
                             setSessionToRevoke(session.id);
                             setConfirm("revoke");

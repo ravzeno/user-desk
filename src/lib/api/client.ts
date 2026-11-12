@@ -5,6 +5,13 @@ const API_BASE = (
 ).replace(/\/+$/, "");
 let redirectingForExpiredSession = false;
 
+export class ServiceUnavailableError extends Error {
+  constructor() {
+    super("ไม่สามารถเชื่อมต่อบริการได้ กรุณาลองอีกครั้ง");
+    this.name = "ServiceUnavailableError";
+  }
+}
+
 export class ApiError extends Error {
   status: number;
   code?: string;
@@ -21,7 +28,7 @@ export function clearExpiredSessionState() {
   redirectingForExpiredSession = false;
 }
 
-function dispatchExpiredSession() {
+export function dispatchExpiredSession() {
   if (redirectingForExpiredSession) return;
   redirectingForExpiredSession = true;
   window.dispatchEvent(new CustomEvent("userdesk:session-expired"));
@@ -37,6 +44,11 @@ export function unwrap<T>(value: unknown): T {
 function errorMessage(payload: unknown, fallback: string): string {
   if (payload && typeof payload === "object") {
     const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.message)) {
+      const messages = record.message.filter((value): value is string => typeof value === "string");
+      if (messages.length) return messages.join(", ");
+    }
+    if (typeof record.message === "string") return record.message;
     const error = record.error;
     if (typeof error === "string") return error;
     if (error && typeof error === "object") {
@@ -53,17 +65,30 @@ export async function request<T>(
   options: RequestInit = {},
   authenticated = true,
 ): Promise<T> {
-  const response = await fetch(
-    `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`,
-    {
-      ...options,
-      credentials: "include",
-      headers: {
-        ...(options.body ? { "Content-Type": "application/json" } : {}),
-        ...options.headers,
+  let response: Response;
+  try {
+    response = await fetch(
+      `${API_BASE}${path.startsWith("/") ? path : `/${path}`}`,
+      {
+        ...options,
+        credentials: "include",
+        headers: {
+          ...(options.body && !(options.body instanceof FormData)
+            ? { "Content-Type": "application/json" }
+            : {}),
+          ...options.headers,
+        },
       },
-    },
-  );
+    );
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    window.dispatchEvent(new CustomEvent("userdesk:service-unavailable"));
+    throw new ServiceUnavailableError();
+  }
+  if ([502, 503, 504].includes(response.status)) {
+    window.dispatchEvent(new CustomEvent("userdesk:service-unavailable"));
+    throw new ServiceUnavailableError();
+  }
 
   let payload: unknown;
   if (response.status !== 204) {
@@ -79,6 +104,9 @@ export async function request<T>(
 
   if (!response.ok) {
     if (response.status === 401 && authenticated) dispatchExpiredSession();
+    if (response.status === 403 && authenticated && !path.startsWith("/auth/get-session")) {
+      window.dispatchEvent(new CustomEvent("userdesk:access-denied"));
+    }
     const fallback =
       response.status === 403
         ? "ไม่มีสิทธิ์ทำรายการ"

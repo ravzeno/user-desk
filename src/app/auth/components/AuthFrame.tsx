@@ -1,3 +1,4 @@
+import userDeskMark from "@/assets/user-desk-mark.svg";
 import type { ReactNode } from "react";
 import { ShieldCheck } from "lucide-react";
 
@@ -15,7 +16,7 @@ export function AuthFrame({
       <div className="auth-shell">
         <section className="auth-intro">
           <div className="brand-lockup auth-brand">
-            <div className="brand-mark">U</div>
+            <img className="brand-mark" src={userDeskMark} alt="" />
             <div>
               <strong>User Desk</strong>
               <span>ACCOUNT MANAGEMENT</span>

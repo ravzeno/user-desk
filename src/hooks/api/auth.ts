@@ -1,5 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getCurrentUser } from "@/lib/api/service/account";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { getCurrentUser, uploadMyAvatar, updateMyProfile } from "@/lib/api/service/account";
 import {
   requestPasswordReset,
   resetPassword,
@@ -65,4 +65,24 @@ export function useSendVerificationEmail() {
       callbackURL: string;
     }) => sendVerificationEmail(email, callbackURL),
   });
+}
+
+export function useUploadMyAvatar() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: uploadMyAvatar,
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY }),
+        queryClient.invalidateQueries({ queryKey: ["users"] }),
+      ]);
+    },
+  });
+}
+
+export function useUpdateMyProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({ mutationFn: updateMyProfile, onSuccess: async () => {
+    await Promise.all([queryClient.invalidateQueries({ queryKey: SESSION_QUERY_KEY }), queryClient.invalidateQueries({ queryKey: ["users"] })]);
+  }});
 }

@@ -1,5 +1,6 @@
 import {
   Activity,
+  House,
   ShieldCheck,
   Users,
   type LucideIcon,
@@ -20,6 +21,7 @@ export interface MenuItem {
 }
 
 export const menuItems: MenuItem[] = [
+  { label: "หน้าแรก", icon: House, to: "/" },
   {
     label: "ผู้ใช้",
     icon: Users,
@@ -27,7 +29,7 @@ export const menuItems: MenuItem[] = [
     children: [
       { label: "ลูกค้า", to: "/users?scope=customer", scope: "customer" },
       {
-        label: "Backoffice",
+        label: "พนักงาน",
         to: "/users?scope=backoffice",
         scope: "backoffice",
       },

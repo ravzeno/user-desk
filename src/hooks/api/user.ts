@@ -1,3 +1,4 @@
+import { ACCESS_QUERY_KEY } from "@/hooks/api/access";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BaseQueryOptions } from "@/hooks/api/type";
 import type {
@@ -97,8 +98,10 @@ export function useSetUserRole() {
   return useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: Role }) =>
       setUserRole(userId, role),
-    onSuccess: () =>
+    onSuccess: () => Promise.all([
       queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.all() }),
+      queryClient.invalidateQueries({ queryKey: ACCESS_QUERY_KEY }),
+    ]),
   });
 }
 

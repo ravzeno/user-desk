@@ -31,3 +31,9 @@ export interface GroupReq {
   description: string;
   active: boolean;
 }
+
+export interface CreateGroupReq {
+  slug: string;
+  name: string;
+  description: string;
+}

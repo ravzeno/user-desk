@@ -5,6 +5,7 @@ export interface UserRecord {
   id: string;
   name: string;
   email: string;
+  image?: string | null;
   phoneNumber?: string | null;
   emailVerified?: boolean;
   role?: Role | string | null;
@@ -16,6 +17,8 @@ export interface UserRecord {
 }
 
 export interface CurrentUser {
+  phoneNumber?: string | null;
+  image?: string | null;
   id: string;
   name?: string;
   email: string;

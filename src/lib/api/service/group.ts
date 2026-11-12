@@ -1,6 +1,6 @@
 import { jsonBody, normalizePage, request } from "@/lib/api/client";
 import type { PageResult } from "@/lib/api/type/base";
-import type { GroupRecord, GroupReq } from "@/lib/api/type/group";
+import type { CreateGroupReq, GroupRecord, GroupReq } from "@/lib/api/type/group";
 import type { UserRecord } from "@/lib/api/type/user";
 
 function normalizeGroup(value: unknown): GroupRecord {
@@ -84,7 +84,7 @@ export async function getGroupMembers(
   );
 }
 
-export function createGroup(body: GroupReq) {
+export function createGroup(body: CreateGroupReq) {
   return request<{ id?: string | number } | string | number>(
     "/backoffice/groups",
     { method: "POST", body: jsonBody(body) },

@@ -1,15 +1,27 @@
+import userDeskMark from "@/assets/user-desk-mark.svg";
+import { usePermission } from "@/hooks/api/access";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronRight, X } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { menuItems } from "./sidebar.config";
 
 export function AppSidebar({
   open,
   onClose,
+  onExpand,
+  account,
 }: {
   open: boolean;
   onClose: () => void;
+  onExpand: () => void;
+  account: ReactNode;
 }) {
   const location = useLocation();
+  const can = usePermission();
+  const [usersOpen, setUsersOpen] = useState(() => location.pathname.startsWith("/users"));
+  useEffect(() => {
+    if (location.pathname.startsWith("/users")) setUsersOpen(true);
+  }, [location.pathname]);
   const activeScope =
     new URLSearchParams(location.search).get("scope") === "backoffice"
       ? "backoffice"
@@ -24,52 +36,48 @@ export function AppSidebar({
           onClick={onClose}
         />
       )}
-      <aside className={`sidebar ${open ? "sidebar-open" : ""}`}>
+      <aside id="main-sidebar" className={`sidebar ${open ? "sidebar-open" : ""}`} inert={!open && window.matchMedia("(max-width: 700px)").matches}>
         <div className="brand-lockup">
-          <div className="brand-mark">U</div>
+          <img className="brand-mark" src={userDeskMark} alt="" />
           <div>
             <strong>User Desk</strong>
             <span>ACCOUNT MANAGEMENT</span>
           </div>
-          <button
-            className="icon-button mobile-close"
-            onClick={onClose}
-            aria-label="ปิดเมนู"
-          >
-            <X size={19} />
-          </button>
         </div>
         <div className="sidebar-caption">จัดการระบบ</div>
         <nav className="main-nav" aria-label="เมนูหลัก">
-          {menuItems.map(({ to, label, icon: Icon, children }) => {
+          {menuItems.filter(({ to }) => to === "/" || can(to === "/users" ? "core_user:list" : to === "/groups" ? "core_group:list" : "core_audit_log:list")).map(({ to, label, icon: Icon, children }) => {
             const isUsersActive =
               Boolean(children) && location.pathname.startsWith(to);
             return children ? (
               <div
-                className={`nav-group ${isUsersActive ? "nav-group-open" : ""}`}
+                className={`nav-group ${usersOpen ? "nav-group-open" : ""}`}
                 key={to}
               >
-                <NavLink
-                  className={`nav-item ${isUsersActive ? "nav-item-active" : ""}`}
-                  to={to}
-                  aria-expanded={isUsersActive}
+                <button
+                  type="button"
+                  className={`nav-item nav-group-toggle ${isUsersActive ? "nav-item-active" : ""}`}
+                  title={label}
+                  aria-label={label}
+                  onClick={() => { if (!open) onExpand(); setUsersOpen((value) => !value); }}
+                  aria-expanded={usersOpen}
                   aria-controls="user-submenu"
                 >
                   <Icon size={18} strokeWidth={1.8} />
                   <span>{label}</span>
                   <ChevronRight className="nav-chevron" size={15} />
-                </NavLink>
+                </button>
                 <div
-                  className={`nav-submenu-clip ${isUsersActive ? "nav-submenu-clip-open" : ""}`}
+                  className={`nav-submenu-clip ${usersOpen ? "nav-submenu-clip-open" : ""}`}
                   id="user-submenu"
                   aria-label="หมวดผู้ใช้"
-                  aria-hidden={!isUsersActive}
-                  inert={!isUsersActive}
+                  aria-hidden={!usersOpen}
+                  inert={!usersOpen}
                 >
                   <div className="nav-submenu">
                     {children.map((child) => (
                       <NavLink
-                        className={`nav-subitem ${activeScope === child.scope ? "nav-subitem-active" : ""}`}
+                        className={`nav-subitem ${isUsersActive && activeScope === child.scope ? "nav-subitem-active" : ""}`}
                         end
                         key={child.scope}
                         to={child.to}
@@ -86,22 +94,19 @@ export function AppSidebar({
                   `nav-item ${isActive ? "nav-item-active" : ""}`
                 }
                 to={to}
+                end={to === "/"}
+                title={label}
+                aria-label={label}
+                onClick={() => setUsersOpen(false)}
                 key={to}
               >
                 <Icon size={18} strokeWidth={1.8} />
                 <span>{label}</span>
-                <ChevronRight className="nav-chevron" size={15} />
               </NavLink>
             );
           })}
         </nav>
-        <div className="sidebar-footer">
-          <p>
-            จัดการบัญชี กลุ่ม และสิทธิ์
-            <br />
-            จากพื้นที่ทำงานเดียว
-          </p>
-        </div>
+        {account}
       </aside>
     </>
   );
