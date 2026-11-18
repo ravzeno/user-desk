@@ -1,10 +1,9 @@
 import userDeskMark from "@/assets/user-desk-mark.svg";
 import type { ReactNode } from "react";
-import { ShieldCheck } from "lucide-react";
 
 export function AuthFrame({
   children,
-  label = "ระบบจัดการบัญชีผู้ใช้",
+  label = "จัดการบัญชีผู้ใช้ กลุ่ม และสิทธิ์",
 }: {
   children: ReactNode;
   label?: string;
@@ -27,15 +26,11 @@ export function AuthFrame({
               พื้นที่สำหรับเจ้าหน้าที่
             </div>
             <h1>
-              ดูแลบัญชี
+              จัดการบัญชี
               <br />
-              <span>อย่างมั่นใจ</span>
+              <span>และสิทธิ์ผู้ใช้</span>
             </h1>
-            <p>{label} สำหรับผู้ดูแลระบบและเจ้าหน้าที่ที่ได้รับอนุญาต</p>
-          </div>
-          <div className="auth-security">
-            <ShieldCheck size={18} />
-            <span>การเข้าถึงได้รับการตรวจสอบโดยระบบทุกครั้ง</span>
+            <p>{label}</p>
           </div>
         </section>
         <section className="auth-card-wrap">{children}</section>

@@ -26,10 +26,10 @@ export function AuditPage() {
       <PageHeading
         eyebrow="ความปลอดภัยและการตรวจสอบ"
         title="ประวัติการเปลี่ยนแปลง"
-        description="ตรวจสอบผู้ดำเนินการ รายการที่เปลี่ยนแปลง และรายละเอียดจากระบบ"
+        description="ดูว่าใครเปลี่ยนแปลงอะไรและเมื่อใด"
       />
       {logs.isLoading ? (
-        <LoadingState label="กำลังโหลด audit log" />
+        <LoadingState label="กำลังโหลดประวัติการเปลี่ยนแปลง" />
       ) : logs.error ? (
         <ErrorState
           message={getErrorMessage(logs.error)}
@@ -38,7 +38,7 @@ export function AuditPage() {
       ) : !logs.data?.items.length ? (
         <EmptyState
           title="ยังไม่มีประวัติการเปลี่ยนแปลง"
-          description="เมื่อมีรายการ audit log จาก API จะแสดงที่นี่"
+          description="รายการเปลี่ยนแปลงจะแสดงที่นี่"
         />
       ) : (
         <section className="panel table-panel">

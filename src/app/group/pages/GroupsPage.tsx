@@ -81,7 +81,6 @@ export function GroupsPage() {
               <strong>กลุ่มทั้งหมด</strong>
               <span>{groups.data.total.toLocaleString("th-TH")} กลุ่ม</span>
             </div>
-            <span className="table-context">สถานะและจำนวนสิทธิ์จาก API</span>
           </div>
           <div className="table-scroll desktop-only">
             <table className="data-table">

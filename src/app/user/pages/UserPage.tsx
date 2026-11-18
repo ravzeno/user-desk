@@ -101,7 +101,7 @@ export function UsersPage() {
       <PageHeading
         eyebrow="บัญชีและการเข้าถึง"
         title="ผู้ใช้"
-        description="แยกรายชื่อลูกค้าและพนักงาน เพื่อค้นหาและจัดการได้ง่ายขึ้น"
+        description="ค้นหาและจัดการบัญชีลูกค้าและพนักงาน"
         actions={
           can("core_user:create") && (scope !== "backoffice" || can("core_user:set-role")) ? <button type="button" className="button button-primary" onClick={() => setCreateOpen(true)}>
             <Plus size={17} /> {scope === "backoffice" ? "เพิ่มพนักงาน" : "เพิ่มลูกค้า"}
@@ -140,7 +140,7 @@ export function UsersPage() {
             q
               ? "ลองตรวจคำค้นหรือค้นหาด้วยอีเมล"
               : scope === "customer"
-                ? "เพิ่มบัญชีลูกค้าใหม่เพื่อเริ่มจัดการใน User Desk"
+                ? "เพิ่มลูกค้าเพื่อสร้างบัญชีใหม่"
                 : "บัญชีที่มีบทบาทเจ้าหน้าที่จะแสดงในส่วนนี้"
           }
           action={
@@ -158,7 +158,6 @@ export function UsersPage() {
               <strong>{accountTitle}</strong>
               <span>{users.data.total.toLocaleString("th-TH")} รายการ</span>
             </div>
-            <span className="table-context">อัปเดตจากระบบโดยตรง</span>
           </div>
           <div className="table-scroll desktop-only">
             <table className="data-table">
@@ -971,7 +970,7 @@ export function UserDetailPage() {
           ) : !sessionsQuery.data?.length ? (
             <EmptyState
               title="ไม่พบเซสชัน"
-              description="ไม่มีเซสชันที่ API ส่งกลับมา"
+              description="ไม่มีเซสชันที่ใช้งานอยู่"
             />
           ) : (
             <div className="table-scroll">
@@ -1032,7 +1031,7 @@ export function UserDetailPage() {
       <ConfirmDialog
         open={confirm === "delete"}
         title="ลบบัญชีผู้ใช้?"
-        description="บัญชีจะถูก soft-delete และเซสชันที่เกี่ยวข้องจะถูกเพิกถอน บัญชีจะหายจากรายการปกติ"
+        description="บัญชีจะถูกนำออกจากรายการ และเซสชันที่เกี่ยวข้องจะถูกเพิกถอน"
         confirmLabel="ลบบัญชี"
         destructive
         busy={remove.isPending}

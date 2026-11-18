@@ -492,7 +492,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
           ) : !members.length ? (
             <EmptyState
               title="ไม่พบสมาชิกในกลุ่ม"
-              description="เมื่อมีสมาชิก ระบบจะแสดงรายชื่อในส่วนนี้"
+              description="เพิ่มสมาชิกเพื่อกำหนดสิทธิ์ให้ผู้ใช้"
             />
           ) : (
             <div className="table-scroll">
@@ -595,7 +595,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
           ) : !catalogQuery.data?.length ? (
             <EmptyState
               title="ไม่พบ permission"
-              description="API ยังไม่ได้ส่งรายการ permission catalog มา"
+              description="ยังไม่มีรายการสิทธิ์ให้เลือก"
             />
           ) : (
             <div className="permission-list">
@@ -652,7 +652,7 @@ export function GroupDetailPage({ create = false }: { create?: boolean }) {
       <ConfirmDialog
         open={confirmDelete}
         title="ลบกลุ่มนี้?"
-        description="สมาชิกจะไม่สามารถใช้ permissions จากกลุ่มนี้ได้ การลบยังอยู่ภายใต้ข้อจำกัดของระบบ"
+        description="สมาชิกจะไม่ได้รับสิทธิ์จากกลุ่มนี้อีกต่อไป"
         confirmLabel="ลบกลุ่ม"
         destructive
         busy={remove.isPending}

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { KeyRound, Mail } from "lucide-react";
 import { z } from "zod";
 import { useRequestPasswordReset, useSignIn } from "@/hooks/api/auth";
 import { Field, useToast } from "@/components/ui";
@@ -61,10 +61,9 @@ export function LoginPage() {
         <div className="auth-card-icon">
           <KeyRound size={20} />
         </div>
-        <div className="eyebrow">ยินดีต้อนรับกลับ</div>
         <h2>เข้าสู่ระบบ</h2>
         <p className="auth-card-lead">
-          กรอกข้อมูลบัญชีเจ้าหน้าที่เพื่อดำเนินการต่อ
+          ใช้อีเมลและรหัสผ่านของคุณ
         </p>
         {params.get("expired") && (
           <div className="notice notice-warning">
@@ -141,9 +140,6 @@ export function LoginPage() {
           </SakugaButton>
         </form>
         <div className="auth-card-bottom">
-          <span className="security-mini">
-            <ShieldCheck size={15} /> ใช้เซสชันที่ปลอดภัย
-          </span>
           <span>สำหรับการใช้งานภายใน</span>
         </div>
       </div>

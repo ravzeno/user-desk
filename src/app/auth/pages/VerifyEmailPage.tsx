@@ -6,7 +6,7 @@ export function VerifyEmailPage() {
   const [params] = useSearchParams();
   const invalid = Boolean(params.get("error"));
   return (
-    <AuthFrame label="ยืนยันอีเมลเพื่อดูแลบัญชีได้อย่างปลอดภัย">
+    <AuthFrame label="ยืนยันอีเมลสำหรับบัญชี User Desk">
       <div className="auth-card verify-card">
         <div
           className={`auth-card-icon ${invalid ? "icon-warning" : "icon-success"}`}
@@ -18,7 +18,7 @@ export function VerifyEmailPage() {
         <p className="auth-card-lead">
           {invalid
             ? "ลิงก์อาจหมดอายุหรือถูกใช้งานไปแล้ว กรุณาขอลิงก์ยืนยันใหม่จากเจ้าหน้าที่"
-            : "ขอบคุณที่ยืนยันอีเมล บัญชีของคุณพร้อมสำหรับการใช้งาน"}
+            : "บัญชีของคุณพร้อมใช้งานแล้ว"}
         </p>
         <Link
           className="button button-primary button-full button-link"
