@@ -16,6 +16,8 @@ import {
   X,
 } from "lucide-react";
 
+import { SakugaButton } from "./SakugaButton";
+
 type ToastKind = "success" | "error" | "info";
 interface ToastMessage {
   id: number;
@@ -310,9 +312,7 @@ export function SearchForm({
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
       />
-      <button className="button button-secondary" type="submit">
-        {buttonLabel}
-      </button>
+      <SakugaButton variant="secondary">{buttonLabel}</SakugaButton>
     </form>
   );
 }

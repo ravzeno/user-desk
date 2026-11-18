@@ -59,3 +59,7 @@ const user = await request(servicePaths.BackofficeUserController_get({ id: "user
 เมื่อ push หรือเปิด pull request GitHub Actions จะทำ Checkout และ Build (`npm ci` และ `npm run build`) แล้วแสดงผลในแท็บ Actions ของ repository โปรเจกต์นี้ยังไม่มีคำสั่ง Linter หรือชุด Unit test จึงยังไม่ได้ตรวจสองขั้นตอนนี้ใน CI
 
 หากต้องการแจ้งผลใน Discord ให้สร้าง webhook ของ channel แล้วเพิ่ม URL เป็น repository secret ชื่อ `DISCORD_WEBHOOK_URL` ที่ GitHub **Settings → Secrets and variables → Actions** ข้อความจะแสดง repository, branch, commit, ผู้ดำเนินการ, ข้อความ, สถานะ และลิงก์ log สำหรับ pull request ข้อความจะแสดงชื่อ PR ระบบจะข้ามการแจ้งเตือนเมื่อไม่มี secret (รวมถึง PR จาก fork) และเมื่อ workflow ถูกยกเลิก ห้ามเปิดเผย webhook URL
+
+## Sakuga VFX
+
+ปุ่มเข้าสู่ระบบและค้นหาใช้ [Sakuga VFX Button](https://github.com/finktheartist/sakuga-vfx/tree/main/button) โดยเก็บไฟล์ต้นฉบับและสัญญาอนุญาต MIT ไว้ใน `public/sakuga-vfx/` หากเบราว์เซอร์ตั้งค่าลดการเคลื่อนไหวหรือโหลดสคริปต์ไม่สำเร็จ จะใช้ปุ่มปกติแทน

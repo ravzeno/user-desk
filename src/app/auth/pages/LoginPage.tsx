@@ -7,6 +7,7 @@ import { KeyRound, Mail, ShieldCheck } from "lucide-react";
 import { z } from "zod";
 import { useRequestPasswordReset, useSignIn } from "@/hooks/api/auth";
 import { Field, useToast } from "@/components/ui";
+import { SakugaButton } from "@/components/ui/SakugaButton";
 import { AuthFrame } from "@/app/auth/components/AuthFrame";
 
 const loginSchema = z.object({
@@ -134,14 +135,10 @@ export function LoginPage() {
               ลืมรหัสผ่าน?
             </button>
           </div>
-          <button
-            className="button button-primary button-full"
-            type="submit"
-            disabled={!form.formState.isValid || signIn.isPending}
-          >
+          <SakugaButton full disabled={!form.formState.isValid || signIn.isPending}>
             {signIn.isPending ? "กำลังเข้าสู่ระบบ…" : "เข้าสู่ระบบ"}
-            <span aria-hidden="true">→</span>
-          </button>
+            <span aria-hidden="true"> →</span>
+          </SakugaButton>
         </form>
         <div className="auth-card-bottom">
           <span className="security-mini">
